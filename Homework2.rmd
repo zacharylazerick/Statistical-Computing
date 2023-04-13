@@ -1,0 +1,453 @@
+---
+title: "Homework 2"
+author: "Zachary Lazerick"
+date: "2023-02-07"
+output:
+  pdf_document: default
+  word_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.align = 'center')
+```
+
+1) Write a function that computes the first 100 Fibonacci numbers (i.e. $X_n = X_{n-1} + X_{n-2}$, with $X_1 = 1$ and $X_2 = 1$).
+
+```{r}
+Fibonacci <- function(x) {
+  Fibo_list <- c(1, 1)
+  while(length(Fibo_list) < x) {
+    Fibo_list[length(Fibo_list)+1] <- Fibo_list[length(Fibo_list)-1] + 
+      Fibo_list[length(Fibo_list)]
+  }
+  return(Fibo_list)
+}
+
+## Test for 1
+Fibonacci(100)
+```
+
+\pagebreak
+
+2) Write a program that prints out all prime numbers from $m$ to $n$. Use $m = 1$ and $n = 100, 500$, and $1000$, but feel free to choose other values as well.
+
+```{r}
+## Problem 2
+
+PrimeFinder <- function(x, y) {
+  i <- x; prime_list <- c();
+  while (i <= y) {
+    j <- 1; factor_list <- c();
+      while (j <= i) {
+        if (i %% j == 0) {
+          factor_list <- append(factor_list, j)
+          j <- j + 1
+        }
+        else {
+          j <- j + 1
+        }
+      }
+    if (length(factor_list) == 2) {
+      prime_list <- append(prime_list, i)
+      i <- i + 1
+    }
+    else {
+      i <- i + 1
+    }
+  }
+  print(prime_list)
+}
+
+## Test for 2
+
+PrimeFinder(1, 100)
+PrimeFinder(1, 500)
+PrimeFinder(1, 1000)
+```
+
+\pagebreak
+
+Graphing:
+4) In honor of the Super Bowl, let’s look at NFL team statistics from this past year. The .csv files that accompanies assignment contains offensive and defensive statistics for each of the $32$ teams from this season. Load these two data sets in to R and create two data frames, one called ‘offense’ and the other ‘defense’. 
+
+```{r, include = F}
+NFL_Offense <- read.csv("NFL_Data_Offense.csv")
+attach(NFL_Offense)
+
+NFL_Defense <- read.csv("NFL_Data_Defense.csv")
+attach(NFL_Defense)
+```
+
+\vspace{.2in}
+i) Construct a histogram that contains offensive rushing and passing yards per game on the same set of axes. The other option is to create a stacked histogram. Here, the idea is to make a histogram for the combined data set, and then “add” a second histogram to the sample graph for one of the individual data sets. It plots the second histogram on top of the first, making it look like a stacked histogram. For whichever option you choose, change the default bin size to be something more interesting to you. Label the x and y axis, and include a title for the graph.
+
+```{r}
+## Build Hist. for Passing Yards
+hist(NFL_Offense$PYds.G, col = 'red', breaks = 16,
+     main = "Total Yards per Game", 
+     xlab = "Yards", ylab = "Frequency")
+
+## Add Hist. for Rushing Yards to Hist. for Passing Yards
+hist(NFL_Offense$RYds.G, add = T, col = 'blue', breaks = 16)
+```
+
+\pagebreak
+
+ii) Construct a scatterplot that compares offensive yards per game and points per game. Add a trendline to this graph and determine the $R^2$ value. Make sure to label your axes and give the graph a title.
+
+```{r}
+## Scatterplot
+plot(NFL_Offense$Pts.G, (NFL_Offense$PYds.G + NFL_Offense$RYds.G),
+     main = "Scatterplot of Points vs. Total Yards (per Game)",
+     xlab = "Points", ylab = "Total Yards")
+
+## Build Regression Line
+Pts_TotYds.G.lm <- lm((NFL_Offense$PYds.G + NFL_Offense$RYds.G)~
+                        NFL_Offense$Pts.G)
+
+## Add Regression Line to the Graph
+abline(Pts_TotYds.G.lm, col = 'red', lwd = '2')
+
+## Report the $R^2$ value
+summary(Pts_TotYds.G.lm)$r.squared
+```
+
+\pagebreak
+
+iii) Construct a scatterplot which displays offensive points per game to defensive points per game. Do you notice any obvious patterns in the data set? What is the $R^2$ value here?
+
+```{r}
+## Scatterplot
+plot(NFL_Offense$Pts.G, NFL_Defense$Pts.G, 
+     main = "Points Scored vs. Points Allowed (per Game)", 
+     xlab = "Points Scored", ylab = "Points Allowed")
+
+## Build Regression Model
+Pts_Scored_Allowed.G.lm <- lm(NFL_Defense$Pts.G~NFL_Offense$Pts.G)
+
+## Report $R^2$ Value
+summary(Pts_Scored_Allowed.G.lm)$r.squared
+```
+
+There are no obvious correlated patterns, however, on the extremes of the plot, the more points an offense can score, the less points the defense allows. 
+
+\pagebreak
+
+iv) Construct a boxplot which displays the total points scored/allowed for both offense and defense. Make sure to label your axes and give the graph a title. Based on this graph, are there any significant differences in the two data sets? 
+
+```{r}
+## Build Boxplot
+## Red = Offense, Blue = Defense
+boxplot(NFL_Offense$Pts.G, NFL_Defense$Pts.G, col = c('red','blue'),
+        main = "Points Scored per Game",
+        xlab = "Offense                               Defense", 
+        ylab = "Points")
+```
+
+The major difference between the two data sets is that the NFL_Defense Dataset has a tighter spread about the median compared to the NFL_Offense Dataset. Aside from that, the overall spread is not to much different.
+
+\pagebreak
+
+5) From: An Introduction to Statistical Computing by Voss [Question E1.1 in textbook] Write a function to implement the LCG. 
+\begin{equation*}
+  X_n = aX_{n-1} + b \pmod{m}
+\end{equation*}
+The function should take a length $n$, the parameters $m, a$, and $b$ as well as the seed $X_0$ as input and should return a vector $X = (X_1, …, X_n)$. Test your function by calling it with the parameters: (Note: Use $n = 10$ in all three cases.)
+
+```{r}
+LCG <- function(n, m, a, b, x) {
+  list_X <- c(x)
+  while (length(list_X) <= n) {
+    x <- list_X[length(list_X)]
+    Next_X <- (a * x + b) %% m
+    list_X <- append(list_X, Next_X)
+  }
+  print(list_X)
+}
+
+## Test 1 ($m = 8, a = 5$, and $b = 1$)
+LCG(10, 8, 5, 1, 2)
+
+## Test 2 ($m = 150, a = 3, b = 0, X_0 = 5$)
+LCG(10, 150, 3, 0, 5)
+
+## Test 3 ($m = 200, a = 5, b = 7, X_0 = 3$)
+LCG(10, 200, 5, 7, 3)
+```
+
+
+
+\pagebreak
+
+6) [Question E1.2 in textbook] Given a sequence $X_1, X_2, …$ of Uniform (0,1) pseudo random numbers, we can use a scatterplot of $(X_i, X_i+1)$ for $i = 1, …, n-1$ in order to try and assess whether the $X_i$ are independent. [Note: R code for each part is given in textbook, E1.2]
+
+\vspace{.2in}
+a) Create such a plot with n = 1000 using the built-in random number generator for R. Can you explain the resulting plot?
+
+```{r, out.width = '50%', out.height = '50%'}
+X <- runif(1000)
+plot(X[1:999], X[2:1000], asp=1)
+```
+
+The resulting plot is plotting the pairs of points $(X_i, X_{i+1}$ for $i = 1, ..., 999$. What we want to see is a random scattering of points. This would mean that the base random number generator used by R generates independent random numbers. This is in fact what we see. This is an indicator that this is a 'good' random number generator.
+
+\vspace{.2 in}
+b) Create a similar plot, using your function LCG from question 1, part (i). Discuss the resulting plot.
+
+```{r, results = 'hide'}
+m <- 81; a <- 1; b <- 8; x <- 0
+X <- LCG(1000, m, a, b, x)/m
+```
+
+```{r, out.width = '50%', out.height = '50%'}
+plot(X[1:999], X[2:1000], asp=1)
+```
+
+The resulting plot appears to be a linear line with a high degree of correlation. This indicates that the numbers generated using the LCG are not random enough because of the obvious pattern, thus we need to use different parameters to derive a 'better' random number generator using an LCG. 
+
+\pagebreak
+c) Repeat the experiment from (b) using the following parameters. Discuss the results.
+
+```{r, results = 'hide'}
+## Test 1 ($m = 1024, a = 401, b = 101$)
+m <- 1024; a <- 401; b <- 101; x <- 0
+X <- LCG(1000, m, a, b, x)/m
+```
+
+```{r, out.width = '50%', out.height = '50%'}
+plot(X[1:999], X[2:1000], asp=1)
+```
+
+Although there appears to be an obvious structure in the construction of the plot, these parameters return the best random number generation using an LCG of the three sets of parameters tested. The pattern between the two points is not easily deducible, so these parameters would likely be random 'enough' for random number generation. 
+
+```{r, results = 'hide'}
+## Test 2 ($m = 232, a = 1664525, b = 1013904223$)
+m <- 232; a <- 1664525; b <- 1013904223; x <- 0
+X <- LCG(1000, m, a, b, x)/m
+```
+
+```{r, out.width = '50%', out.height = '50%'}
+plot(X[1:999], X[2:1000], asp=1)
+```
+
+This plot however, is the worst. The period of this LCG is 8. Of a possible 232 unique values to hit, this combination of parameters only loops through $3.44$\% of them. This is not suitable for random number generation. These two plots highlight how effective LCGs can be used to simulate random numbers, and that not all combinations of parameters are built the same. 
+
+\pagebreak
+
+
+7) From Simulation by Sheldon Ross, Chapter 3, [Question 12 in book] For uniform (0,1) random variables $U_1, U_2, \ldots$ define:
+\begin{equation*}
+  N = minimum \{ n: \Sigma_{i = 1}^n U_i > 1 \}
+\end{equation*}
+That is, N is equal to the number of random numbers that must be summed to exceed 1.
+
+\vspace{.2in}
+a) Estimate E(N) by generating 100 values of N.
+
+```{r}
+N <- rep(0, 100); set.seed(3418)
+for (i in 1:100) {
+  Sum = 0; count = 0; X <- runif(1000)
+  while (Sum < 1) {
+    count = count + 1; Sum = Sum + X[count]
+  }
+  N[i] <- count
+}
+sum(N)/100
+```
+
+\vspace{.2in}
+b) Estimate E(N) by generating 1000 values of N.
+
+```{r}
+N <- rep(0, 1000); set.seed(2218)
+for (i in 1:1000) {
+  Sum = 0; count = 0; X <- runif(1000)
+  while (Sum < 1) {
+    count = count + 1; Sum = Sum + X[count]
+  }
+  N[i] <- count
+}
+sum(N)/1000
+```
+
+\vspace{.2in}
+c) Estimate E(N) by generating 10000 values of N.
+
+```{r}
+N <- rep(0, 10000); set.seed(1018)
+for (i in 1:10000) {
+  Sum = 0; count = 0; X <- runif(1000)
+  while (Sum < 1) {
+    count = count + 1; Sum = Sum + X[count]
+  }
+  N[i] <- count
+}
+sum(N)/10000
+```
+
+\vspace{.2in}
+d) What do you think is the value of E(N)?
+
+\vspace{.2in}
+I think the value of E(N) is Euler's number, $e = 2.73$.
+
+\pagebreak
+
+8) [Question 13 in book] Let $U_i$, for $i \geq 1$, be random numbers. Define N by
+\begin{equation*}
+  N = maximum \{n : \prod_{i=1}^n U_i \geq e^{-3} \}
+\end{equation*}
+where $\prod_{i = 1}^0 U_i = 1$.
+
+\vspace{.2in}
+a) Find E(N) by simulation
+
+```{r}
+## Define Storage Vector
+N <- c(); set.seed(1201)
+
+for (i in 1:100) {
+  n <- 0; prod <- 1; X <- runif(1000);
+  while (prod >= exp(-3)) {
+    n <- n + 1
+    prod <- prod * X[n]
+  }
+  N <- append(N, n)
+}
+
+## Report E(N) for 100 Trials
+sum(N)/100
+```
+
+\vspace{.2in}
+b) Find $P(N = i)$ for $i = 0, 1, 2, 3, 4, 5, 6$, by simulation
+
+```{r}
+N <- c(); set.seed(1209)
+
+## Expand to 1000 Trials
+for (i in 1:1000) {
+  n <- 0; prod <- 1; X <- runif(1000);
+  while (prod >= exp(-3)) {
+    n <- n + 1
+    prod <- prod * X[n]
+  }
+  N <- append(N, n)
+}
+
+table(N)
+```
+
+$P(X = 0) = 0$ because we need to generate at least one random uniform integer to compare our product against $e^{-3}$. 
+
+\pagebreak
+
+9) [Question 14 in textbook] With $X_1 = 23$ and $X_2 = 66$, define
+$X_n = 3X_{n-1} + 5X_{n-2} \pmod{100}$ for $n \geq 3$. Find the first 15 values of $U_n = X_n /100$.
+
+```{r}
+## Initialize the First 2 Values of the List
+X_list <- c(23, 66)
+
+## Iterate List until Length = 15 (i.e. First 15 numbers)
+while (length(X_list) < 15) {
+  Next_X <- (3 * X_list[length(X_list) - 1] + 5 *
+               X_list[length(X_list)]) %% 100
+  X_list <- append(X_list, Next_X)
+}
+
+## Print List
+X_list
+
+## Convert List to the interval [0, 1)
+U_list <- X_list / 100
+
+## Print Converted List
+U_list
+```
+
+\pagebreak
+
+
+10) From Simulation by Sheldon Ross, Chapter 4 [Question 3 in book] Write an efficient algorithm to simulate the value of a random variable X such that: $P({X=1}) = 0.3, P({X=2}) = 0.2, P({X=3}) = 0.35, P({X=4}) = 0.15$
+
+Simulate 1000 values from this distribution and using the approach we talked about in class to simulate random variables from an arbitrary distribution. Check your results against the given probabilities by using the table command. Repeat this problem using the built-in R function, sample(). Do the two approaches give similar results? 
+
+```{r}
+## Build 1000 Uniform X on [0, 1)
+set.seed(831); X <- runif(1000)
+## Store Results in Y
+Y <- rep(1, 1000)
+
+for (i in 1:length(X)) {
+  if ((X[i] >= 0) & (X[i] < .3)) {
+    Y[i] <- 1
+  }
+  else if ((X[i] >= .3) & (X[i] < .5)) {
+    Y[i] <- 2
+  }
+  else if ((X[i] >= .5) & (X[i] < .85)) {
+    Y[i] <- 3
+  }
+  else if ((X[i] >= .85) & (X[i] < 1)) {
+    Y[i] <- 4
+  }
+  else {
+    Y[i] <- 0
+  }
+}
+
+## Simulated Probabilities
+table(Y)/1000
+
+## Sampled Probabilities
+set.seed(2031)
+Sample <- sample(x = c(1, 2, 3, 4), size = 1000, replace = T, 
+                 prob = c(.3, .2, .35, .15))
+table(Sample)/1000
+```
+
+The two approaches do give roughly similar results. The simulated data is off the given probabilities by about $0.058$ while the sampled data is off by about $0.052$. So, the sampled data stays slightly truer to the specified probabilities. 
+
+\pagebreak
+
+11) (Non-Textbook Question) Suppose that balls are successively distributed among 8 urns with each ball being equally likely to be put in any of these urns. What is the probability that there will be exactly 3 empty urns after 9 balls have been distributed?
+
+\vspace{.2in}
+Steps:
+
+i) Generate 9 random integers from 1 to 8, with repeats allowed. This represents the urn that each ball is placed into
+
+ii) Count the number of unique integers
+
+iii) Repeat a large number of times (1000+)
+
+iv) Estimate the probability of 3 empty urns as the number of iterations where there were 6 unique integers in the sample (i.e. 6 urns with balls in them) divided by the total number of trials.
+
+```{r}
+## Count how many iterations have 3 empty urns
+count = 0; set.seed(2047)
+
+## Simulate 1000 Times
+for (i in 1:1000) {
+  X <- sample(x = c(1, 2, 3, 4, 5, 6, 7, 8), size = 9, replace = T)
+  Urn_list <- c()
+  for (j in 1:length(X)) {
+    ## Check if Urn_list already
+    if (X[j] %in% Urn_list == F) {
+      Urn_list <- append(Urn_list, X[j])
+      j <- j + 1
+    }
+    else {
+      j <- j + 1
+    }
+  }
+  ## With 8 Urns, If length(Urn_list) == 5, then 3 urns are empty
+  if (length(Urn_list) == 5) {
+    count = count + 1
+  }
+}
+
+##Report Estimated Probability of Exactly 3 Empty Urns
+count/1000
